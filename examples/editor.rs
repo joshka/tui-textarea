@@ -1,4 +1,6 @@
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::event::{
+    DisableMouseCapture, EnableMouseCapture, Event, MouseEvent, MouseEventKind,
+};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, is_raw_mode_enabled, EnterAlternateScreen,
     LeaveAlternateScreen,
@@ -307,7 +309,18 @@ impl<'a> Editor<'a> {
                     }
                 }
             } else {
-                match crossterm::event::read()?.into() {
+                let event = crossterm::event::read()?;
+                if let Event::Mouse(MouseEvent { kind, .. }) = &event {
+                    let m = match kind {
+                        MouseEventKind::ScrollDown => CursorMove::Down,
+                        MouseEventKind::ScrollUp => CursorMove::Up,
+                        _ => continue,
+                    };
+                    self.buffers[self.current].textarea.move_cursor(m);
+                    continue;
+                }
+
+                match event.into() {
                     Input {
                         key: Key::Char('q'),
                         ctrl: true,
